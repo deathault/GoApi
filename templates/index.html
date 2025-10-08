@@ -1,0 +1,37 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Поиск причендала</title>
+</head>
+<body>
+    <h1>Поиск причендала</h1>
+    <form id="searchForm">
+        Название: <input type="text" name="name"><br>
+        Мин. цена: <input type="number" name="minPrice"><br>
+        Макс. цена: <input type="number" name="maxPrice"><br>
+        Год выпуска: <input type="number" name="year"><br>
+        <button type="button" onclick="search()">Искать</button>
+    </form>
+
+    <h2>Результаты:</h2>
+    <ul id="results"></ul>
+
+    <script>
+        function search() {
+            const form = document.getElementById('searchForm');
+            const params = new URLSearchParams(new FormData(form)).toString();
+            fetch('/api/items?' + params)
+                .then(res => res.json())
+                .then(data => {
+                    const ul = document.getElementById('results');
+                    ul.innerHTML = '';
+                    data.forEach(item => {
+                        const li = document.createElement('li');
+                        li.textContent = item.name + ' | Цена: ' + item.price + ' | Год: ' + item.year;
+                        ul.appendChild(li);
+                    });
+                });
+        }
+    </script>
+</body>
+</html>
