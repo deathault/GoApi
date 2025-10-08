@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/json"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -21,10 +21,11 @@ type Item struct {
 var items []Item
 
 func main() {
-	file, err := os.ReadFile("data.json")
+	file, err := ioutil.ReadFile("data.json")
 	if err != nil {
 		log.Fatalf("Не удалось открыть data.json: %v", err)
 	}
+
 	if err := json.Unmarshal(file, &items); err != nil {
 		log.Fatalf("Не удалось распарсить JSON: %v", err)
 	}
