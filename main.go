@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"html/template"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -119,10 +118,10 @@ func loggingMiddleware(next http.Handler) http.Handler {
 		// --- Тело запроса (если есть) ---
 		var body string
 		if r.Body != nil {
-			data, _ := io.ReadAll(r.Body)
+			data, _ := ioutil.ReadAll(r.Body) // Используем ioutil.ReadAll
 			body = string(data)
 			// Важно: чтобы другие хендлеры могли снова читать тело, его надо вернуть
-			r.Body = io.NopCloser(strings.NewReader(body))
+			r.Body = ioutil.NopCloser(strings.NewReader(body)) // Используем ioutil.NopCloser
 		}
 
 		// --- Передаём запрос дальше ---
