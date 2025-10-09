@@ -3,11 +3,13 @@ package main
 import (
 	"encoding/json"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Item struct {
@@ -20,6 +22,7 @@ type Item struct {
 
 var items []Item
 
+// --- MAIN ---
 func main() {
 	file, err := ioutil.ReadFile("data.json")
 	if err != nil {
@@ -30,13 +33,18 @@ func main() {
 		log.Fatalf("Не удалось распарсить JSON: %v", err)
 	}
 
-	http.HandleFunc("/", indexHandler)
-	http.HandleFunc("/api/items", apiHandler)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", indexHandler)
+	mux.HandleFunc("/api/items", apiHandler)
+
+	// Оборачиваем mux в middleware для логирования
+	loggedMux := loggingMiddleware(mux)
 
 	log.Println("Сервер запущен на порту 3000")
-	log.Fatal(http.ListenAndServe(":3000", nil))
+	log.Fatal(http.ListenAndServe(":3000", loggedMux))
 }
 
+// --- HANDLERS ---
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.ParseFiles("templates/index.html")
 	if err != nil {
@@ -75,4 +83,68 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(filtered)
+}
+
+// --- LOGGING MIDDLEWARE ---
+type loggingResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (lrw *loggingResponseWriter) WriteHeader(code int) {
+	lrw.statusCode = code
+	lrw.ResponseWriter.WriteHeader(code)
+}
+
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		lrw := &loggingResponseWriter{ResponseWriter: w, statusCode: 200}
+
+		// --- IP ---
+		ip := r.Header.Get("X-Real-IP")
+		if ip == "" {
+			ip = r.Header.Get("X-Forwarded-For")
+		}
+		if ip == "" {
+			ip = r.RemoteAddr
+		}
+
+		// --- Заголовки ---
+		headers, _ := json.MarshalIndent(r.Header, "", "  ")
+
+		// --- Query params ---
+		query, _ := json.MarshalIndent(r.URL.Query(), "", "  ")
+
+		// --- Тело запроса (если есть) ---
+		var body string
+		if r.Body != nil {
+			data, _ := io.ReadAll(r.Body)
+			body = string(data)
+			// Важно: чтобы другие хендлеры могли снова читать тело, его надо вернуть
+			r.Body = io.NopCloser(strings.NewReader(body))
+		}
+
+		// --- Передаём запрос дальше ---
+		next.ServeHTTP(lrw, r)
+
+		duration := time.Since(start)
+
+		log.Printf(`
+----------------------------------------------------
+🕒 Время: %v
+📡 Метод: %s
+🌍 URL: %s
+🔢 Статус: %d
+⏱️ Длительность: %v
+👤 IP: %s
+🧭 User-Agent: %s
+🧩 Query параметры: %s
+📬 Заголовки: %s
+📦 Тело запроса: %s
+----------------------------------------------------
+`, time.Now().Format("2006-01-02 15:04:05"),
+			r.Method, r.URL.String(), lrw.statusCode, duration,
+			ip, r.UserAgent(), query, headers, body)
+	})
 }
