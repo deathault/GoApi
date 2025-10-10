@@ -35,6 +35,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", indexHandler)
 	mux.HandleFunc("/api/items", apiHandler)
+	mux.HandleFunc("/cena", cenaHandler)
 
 	// Оборачиваем mux в middleware для логирования
 	loggedMux := loggingMiddleware(mux)
@@ -46,6 +47,19 @@ func main() {
 // --- HANDLERS ---
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.ParseFiles("templates/index.html")
+	if err != nil {
+		http.Error(w, "Ошибка шаблона", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := tmpl.Execute(w, nil); err != nil {
+		http.Error(w, "Ошибка при выполнении шаблона", http.StatusInternalServerError)
+	}
+}
+
+func cenaHandler(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.ParseFiles("templates/cena.html")
 	if err != nil {
 		http.Error(w, "Ошибка шаблона", http.StatusInternalServerError)
 		return
