@@ -36,6 +36,9 @@ func main() {
 	mux.HandleFunc("/", indexHandler)
 	mux.HandleFunc("/api/items", apiHandler)
 	mux.HandleFunc("/cena", cenaHandler)
+	mux.HandleFunc("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "robots.txt")
+	})
 
 	// Оборачиваем mux в middleware для логирования
 	loggedMux := loggingMiddleware(mux)
