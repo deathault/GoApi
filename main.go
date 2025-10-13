@@ -36,6 +36,8 @@ func main() {
 	mux.HandleFunc("/", indexHandler)
 	mux.HandleFunc("/api/items", apiHandler)
 	mux.HandleFunc("/cena", cenaHandler)
+	mux.HandleFunc("/doit", doitHandler)
+	mux.HandleFunc("/finish", finishHandler)
 	mux.HandleFunc("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "robots.txt")
 	})
@@ -63,6 +65,32 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 func cenaHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.ParseFiles("templates/cena.html")
+	if err != nil {
+		http.Error(w, "Ошибка шаблона", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := tmpl.Execute(w, nil); err != nil {
+		http.Error(w, "Ошибка при выполнении шаблона", http.StatusInternalServerError)
+	}
+}
+
+func doitHandler(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.ParseFiles("templates/doit.html")
+	if err != nil {
+		http.Error(w, "Ошибка шаблона", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := tmpl.Execute(w, nil); err != nil {
+		http.Error(w, "Ошибка при выполнении шаблона", http.StatusInternalServerError)
+	}
+}
+
+func finishHandler(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.ParseFiles("templates/finish.html")
 	if err != nil {
 		http.Error(w, "Ошибка шаблона", http.StatusInternalServerError)
 		return
